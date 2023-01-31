@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #define COLUMN_USERNAME_SIZE 32
@@ -29,6 +30,12 @@ typedef struct
     char username[COLUMN_USERNAME_SIZE + 1];
     char email[COLUMN_EMAIL_SIZE + 1];
 }Row;
+
+typedef struct {
+    Table* table;
+    u_int32_t row_num;
+    bool end_of_table;
+} Cursor;
 
 typedef struct {
     char* buffer;
@@ -204,6 +211,24 @@ void* row_slot(Table* table, u_int32_t row_num){
     u_int32_t row_offset = row_num % ROWS_PER_PAGE;
     u_int32_t byte_offset = row_offset * ROW_SIZE;
     return page + byte_offset;
+}
+
+Cursor* table_start(Tabel* table){
+	Cursor* cursor = malloc(sizeof(Cursor));
+	cursor->table = table;
+	cursor->row_num = table;
+       	cursor->end_of_table = (table->num_rows == 0);
+
+	return cursor;
+}
+
+Cursor* table_end(Table* table) {
+    Cursor* cursor = malloc(sizeof(Cursor));
+    cursor->table = table;
+    cursor->row_num = table->num_rows;
+    cursor->end_of_table = true;
+
+    return cursor;
 }
 
 Table* db_open(const char* filename){
