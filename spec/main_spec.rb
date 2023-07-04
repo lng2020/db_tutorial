@@ -195,4 +195,34 @@ describe 'database' do
       "    - 13",
       "    - 14",
       "db > Need to implement searching an internal node",
+    ])
+  end
+
+  it 'prints all rows in a multi-level tree' do
+    script = (1..15).map do |i|
+      "insert #{i} user#{i} person#{i}@example"
+    end
+    script << "select"
+    script << ".exit"
+    result = run_script(script)
+    expect(result[15...(result.length)]).to match_array([
+      "db > (1, user1, person1@example)",
+      "(2, user2, person2@example)",
+      "(3, user3, person3@example)",
+      "(4, user4, person4@example)",
+      "(5, user5, person5@example)",
+      "(6, user6, person6@example)",
+      "(7, user7, person7@example)",
+      "(8, user8, person8@example)",
+      "(9, user9, person9@example)",
+      "(10, user10, person10@example)",
+      "(11, user11, person11@example)",
+      "(12, user12, person12@example)",
+      "(13, user13, person13@example)",
+      "(14, user14, person14@example)",
+      "(15, user15, person15@example)",
+      "Executed.",
+      "db > ",
+    ])
+  end
 end

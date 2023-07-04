@@ -101,7 +101,9 @@ const u_int32_t COMMON_NODE_HEADER_SIZE = NODE_TYPE_SIZE + IS_ROOT_SIZE + PARENT
 
 const u_int32_t LEAF_NODE_NUM_CELLS_SIZE = sizeof(u_int32_t);
 const u_int32_t LEAF_NODE_NUM_CELLS_OFFSET = COMMON_NODE_HEADER_SIZE;
-const u_int32_t LEAF_NODE_HEADER_SIZE = COMMON_NODE_HEADER_SIZE + LEAF_NODE_NUM_CELLS_SIZE;
+const u_int32_t LEAF_NODE_NEXT_LEAF_SIZE = sizeof(u_int32_t);
+const u_int32_t LEAF_NODE_NEXT_LEAF_OFFSET = LEAF_NODE_NUM_CELLS_OFFSET + LEAF_NODE_NUM_CELLS_SIZE;
+const u_int32_t LEAF_NODE_HEADER_SIZE = COMMON_NODE_HEADER_SIZE + LEAF_NODE_NUM_CELLS_SIZE + LEAF_NODE_NEXT_LEAF_SIZE;
 
 const u_int32_t LEAF_NODE_KEY_SIZE = sizeof(u_int32_t); 
 const u_int32_t LEAF_NODE_KEY_OFFSET = 0;
@@ -161,6 +163,10 @@ u_int32_t* leaf_node_key(void* node, u_int32_t cell_num){
 
 void* leaf_node_value(void* node, u_int32_t cell_num){
     return leaf_node_cell(node, cell_num) + LEAF_NODE_KEY_SIZE;
+}
+
+u_int32_t* leaf_node_next_leaf(void* node){
+    return node + LEAF_NODE_NEXT_LEAF_OFFSET;
 }
 
 u_int32_t* internal_node_num_keys(void* node){
@@ -224,6 +230,7 @@ void initialize_leaf_node(void* node){
     set_node_type(node,  NODE_LEAF);
     set_node_root(node, false);
     *leaf_node_num_cells(node) = 0;
+    *leaf_node_next_leaf(node) = 0;
 }
 
 void initialize_internal_node(void* node){
@@ -392,8 +399,12 @@ void* cursor_value(Cursor* cursor){
 void cursor_advance(Cursor* cursor) {
     void* page_node = get_page(cursor->table->pager, cursor->page_num);
     cursor->cell_num += 1;
-    if (cursor->cell_num >= (*leaf_node_num_cells(page_node))) {
+    u_int32_t next_page_num = *leaf_node_next_leaf(page_node);
+    if (next_page_num == 0){
         cursor->end_of_table = true;
+    } else {
+        cursor->page_num = next_page_num;
+        cursor->cell_num = 0;
     }
 }
 
@@ -420,6 +431,8 @@ void leaf_node_split_and_insert(Cursor* cursor, u_int32_t key, Row* value){
     u_int32_t old_max = get_unused_page_num(cursor->table->pager);
     void* new_node = get_page(cursor->table->pager, old_max);
     initialize_leaf_node(new_node);
+    *leaf_node_next_leaf(new_node) = *leaf_node_next_leaf(old_node);
+    *leaf_node_next_leaf(old_node) = old_max;
 
     for (u_int32_t i = LEAF_NODE_MAX_CELLS; i >= 0; i--){
         void* destination_node;
@@ -527,19 +540,6 @@ Cursor* internal_node_find(Table* table, u_int32_t page_num, u_int32_t key){
     }
 }
 
-Cursor* table_start(Table* table){
-	Cursor* cursor = malloc(sizeof(Cursor));
-	cursor->table = table;
-    cursor->page_num = table->root_page_num;
-    cursor->cell_num = 0;
-
-    void* root_node = get_page(table->pager, table->root_page_num);
-    u_int32_t num_cells = *leaf_node_num_cells(root_node);
-    cursor->end_of_table = (num_cells == 0);
-
-	return cursor;
-}
-
 Cursor* table_find(Table* table, u_int32_t key) {
     u_int32_t root_page_num = table->root_page_num;
     void* root_node = get_page(table->pager, root_page_num);
@@ -549,6 +549,16 @@ Cursor* table_find(Table* table, u_int32_t key) {
     } else {
         return internal_node_find(table, root_page_num, key);
     }
+}
+
+Cursor* table_start(Table* table){
+    Cursor* cursor = table_find(table, 0);
+
+    void* node = get_page(table->pager, cursor->page_num);
+    u_int32_t num_cells = *leaf_node_num_cells(node);
+    cursor->end_of_table = (num_cells == 0);
+
+    return cursor;
 }
 
 Table* db_open(const char* filename){
