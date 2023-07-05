@@ -194,7 +194,7 @@ describe 'database' do
       "    - 12",
       "    - 13",
       "    - 14",
-      "db > Need to implement searching an internal node",
+      "db > Need to implement updating parent after split.",
     ])
   end
 
@@ -224,5 +224,58 @@ describe 'database' do
       "Executed.",
       "db > ",
     ])
+  end
+
+  it 'allows printing out the structure of a 4-leaf-node btree' do
+    script = [
+      "insert 18 user18 person18@example",
+      "insert 7 user7 person7@example",
+      "insert 3 user3 person3@example",
+      "insert 11 user11 person11@example",
+      "insert 1 user1 person1@example",
+      "insert 5 user5 person5@example",
+      "insert 19 user19 person19@example",
+      "insert 4 user4 person4@example",
+      "insert 14 user14 person14@example",
+      "insert 15 user15 person15@example",
+      "insert 16 user16 person16@example",
+      "insert 17 user17 person17@example",
+      "insert 6 user6 person6@example",
+      "insert 8 user8 person8@example",
+      "insert 9 user9 person9@example",
+      "insert 10 user10 person10@example",
+      "insert 2 user2 person2@example",
+      "insert 12 user12 person12@example",
+      "insert 13 user13 person13@example",
+      ".btree",
+      ".exit",
+    ]
+    result = run_script(script)
+    expect(result[20...(result.length)]).to match_array([
+      "db > Tree:",
+      "- internal (size 3)",
+      "  - leaf (size 7)",
+      "    - 1",
+      "    - 2",
+      "    - 3",
+      "    - 4",
+      "    - 5",
+      "    - 6",
+      "    - 7",
+      "   - key 7",
+      "  - leaf (size 7)",
+      "    - 8",
+      "    - 9",
+      "    - 10",
+      "    - 11",
+      "    - 12",
+      "    - 13",
+      "    - 14",
+      "   - key 14",
+      "  - leaf (size 2)",
+      "    - 15",
+      "   - key 15",
+      "  - leaf (size 2)",
+      "    - 16",
   end
 end
