@@ -539,6 +539,27 @@ void leaf_node_split_and_insert(Cursor* cursor, u_int32_t key, Row* value){
     }
 }
 
+void internal_node_split_and_insert(Table* table, u_int32_t parent_page_num, u_int32_t child_page_num){
+    u_int32_t old_page_num = parent_page_num;
+    void* old_node = get_page(table->pager, old_page_num);
+    u_int32_t old_max = get_node_max_key(old_node);
+
+    void* child = get_page(table->pager, child_page_num);
+    u_int32_t child_max = get_node_max_key(child);
+
+    u_int32_t new_page_num = get_unused_page_num(table->pager);
+
+    u_int32_t splitting_root = is_node_root(old_node);
+
+    void* parent;
+    void* new_node;
+    if (splitting_root) {
+        create_new_root(table, new_page_num);
+        parent = get_page(table->pager, table->root_page_num);
+} else {    
+    }
+}
+
 void leaf_node_insert(Cursor* cursor, u_int32_t key, Row* value){
     void* node = get_page(cursor->table->pager, cursor->page_num);
     u_int32_t num_cells = *leaf_node_num_cells(node);
